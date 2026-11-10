@@ -38,7 +38,7 @@ class_groups = {
     
     "HETEROATOM": {"prefix": "het", "classifications": ["Heteroatom"]},
     
-    "LIGAND - OXYGEN (Lig-O-TM)": {"prefix": "tmtolig_O", "classifications": ["TM-Ligand Oxygen"]},  
+    "LIGAND - OXYGEN (Lig-O-TM)": {"prefix": "tmbridlig_O", "classifications": ["TM-Ligand Oxygen"]},  
 
     "OXYGEN - TERMINAL (M=O)": {"prefix": "term_O", "classifications": ["Terminal Oxygen"]},
     "OXYGEN - TERMINAL (TM=O)": {"prefix": "termTM_O", "classifications": ["TM-Terminal Oxygen"]},
