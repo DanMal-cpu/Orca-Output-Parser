@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 @author: dmalcolm
@@ -8,7 +9,6 @@ from abc import ABC
 from math import sqrt
 
 from Config import class_groups
-from Parameter_Storage import OrcaParameterStorage
 from Physical_Properties import get_element
 
 
@@ -19,7 +19,6 @@ from Physical_Properties import get_element
 class_order = list(class_groups.keys())
 class_to_param = {name: info["prefix"] for name, info in class_groups.items()}
 group_definitions = {name: info["classifications"] for name, info in class_groups.items()}
-
 
 
 # ============ BASE CLASSIFIER ============
@@ -197,13 +196,14 @@ def desig_prop(results, parameter_storage=None):
     """ Process designation properties using the order from Constants """
     
     if parameter_storage is None:
+        from Parameter_Storage import OrcaParameterStorage
         parameter_storage = OrcaParameterStorage()
 
     for group_name, group_info in class_groups.items():
         designations = group_info["classifications"]
         param_prefix = group_info["prefix"]    
         
-        prop_data = filter_properties(results, designations)
+        prop_data = filter_properties(results, results["atom_class"], designations)
         
         bond_lengths, bond_orders, qa_charges, qa_mean, qa_stdev, hir_charges, hir_mean, hir_stdev = prop_data
 
@@ -275,7 +275,6 @@ def filter_properties(results, atom_class, designations):
     data_map = {"bond_l": results["bond_lengths"], "bond_o": results["bond_orders"], "qa": results["qa_charges"], "hir": results["hir_charges"]}
             
     combined = {"bond_l": {}, "bond_o": {}, "qa": {}, "hir": {}}
-    atom_class = results["atom_class"]
             
     for designation in designations:
         for key in combined.keys():

@@ -22,6 +22,16 @@ class OrcaParameterStorage:
         
         self.parameters = {}                                    
         self.requested_parameters = set()                       
+ 
+    
+    def get_calc_type(self):
+        """ Retrieve calculation type """
+        calc_type = "Unknown"
+        energy_data = self.parameters.get("energy_data", {})
+        if "calculation_type" in energy_data:
+            calc_type = energy_data["calculation_type"]
+        
+        return calc_type
     
         
     # ============ FORMATTING METHODS ============
@@ -90,12 +100,7 @@ class OrcaParameterStorage:
         class_width = 27
         output = []
         
-        output.append("\n")
-        output.append("=" * 35)
-        output.append(f"ATOM CLASSES (Total: {total_atoms} atoms)")
-        output.append("=" * 35)
-        output.append("")
-        output.append(f"""{"CLASS":<{class_width}} COUNT   ATOMS""")
+        output.append(f"""\n\n{"CLASS":<{class_width}} COUNT   ATOMS""")
         
         divider_idx = len(output)
         output.append("")                                                                       # Placeholder for divider.
@@ -167,7 +172,7 @@ class OrcaParameterStorage:
             element_groups[element].append(bond)
         
         lines = []
-        lines.append(f"""{"Bond Name":<12} {"Bond Length":<12} {"Bond Order":<12}""")
+        lines.append(f"""{"BOND NAME":<12} {"BOND LENGTH":<12} {"BOND ORDER":<12}""")
         lines.append("-" * 45)
         
         sorted_elements = sorted(element_groups.keys())
@@ -358,7 +363,7 @@ class OrcaParameterStorage:
         lines = []
         
         if frontier_data:
-            lines.append("Frontier Orbitals:")
+            lines.append("FRONTIER ORBITALS:")
             lines.append("-" * 40)
             
             spin_polarized = frontier_data.get("spin_polarized", False)
@@ -392,7 +397,7 @@ class OrcaParameterStorage:
                     beta_gap = "N/A"
                 
                 
-                lines.append("Alpha Spin:")                                                                             # Format alpha spin data.
+                lines.append("ALPHA SPIN:")                                                                             # Format alpha spin data.
                 if isinstance(alpha_homo_energy, float):
                     lines.append(f"  HOMO(α):    {alpha_homo_energy:8.4f} eV  (orbital {alpha_homo_orbital})")
                 else:
@@ -411,7 +416,7 @@ class OrcaParameterStorage:
                 lines.append("")
                 
                 
-                lines.append("Beta Spin:")                                                                              # Format beta spin data.
+                lines.append("BETA SPIN:")                                                                              # Format beta spin data.
                 if isinstance(beta_homo_energy, float):
                     lines.append(f"  HOMO(β):    {beta_homo_energy:8.4f} eV  (orbital {beta_homo_orbital})")
                 else:
@@ -426,6 +431,8 @@ class OrcaParameterStorage:
                     lines.append(f"  Gap(β):     {beta_gap:8.4f} eV")
                 else:
                     lines.append(f"  Gap(β):     {beta_gap:>8} eV")
+                    
+                lines.append("")
                     
                     
             else:                                                                                                       # Handle non-spin-polarized case.
@@ -454,6 +461,8 @@ class OrcaParameterStorage:
                     lines.append(f"Gap:         {gap:8.4f} eV")
                 else:
                     lines.append(f"Gap:         {gap:>8} eV")
+                    
+                lines.append("")
             
             lines.append(f"""Spin polarized: {"Yes" if spin_polarized else "No"}""")
             lines.append("")
@@ -462,8 +471,7 @@ class OrcaParameterStorage:
         if extended_data:                                                                                               # Extended frontier orbitals in two-column layout.
             lines.append("")
             lines.append("")
-            lines.append("Extended Frontier Orbitals:")
-            lines.append("-" * 60)
+
             
             has_alpha_below = "spin-α_below_homo" in extended_data                                                      # Check if extended data has spin-polarized structure.
             has_alpha_above = "spin-α_above_lumo" in extended_data  
@@ -489,8 +497,9 @@ class OrcaParameterStorage:
                 
                 if has_alpha_data:                                                                                      # Alpha spin extended orbitals
                     
-                    lines.append("Alpha Spin:")
-                    lines.append(f"""{"Orbital":<12} {"Energy (eV)":<12} | {"Orbital":<12} {"Energy (eV)":<12}""")
+                    lines.append("EXTENDED FRONTIER ORBITALS (ALPHA SPIN):")
+                    lines.append("-" * 60)
+                    lines.append(f"""{"ORBITAL":<12} {"ENERGY (eV)":<12} | {"ORBITAL":<12} {"ENERGY (eV)":<12}""")
                     lines.append("-" * 60)
                     
                     alpha_left_column = []
@@ -544,8 +553,11 @@ class OrcaParameterStorage:
                 
                 if has_beta_data:                                                                                       # Beta spin extended orbitals
                     
-                    lines.append("Beta Spin:")
-                    lines.append(f"""{"Orbital":<12} {"Energy (eV)":<12} | {"Orbital":<12} {"Energy (eV)":<12}""")
+                    lines.append("")
+                    lines.append("")
+                    lines.append("EXTENDED FRONTIER ORBITALS (BETA SPIN):")
+                    lines.append("-" * 60)
+                    lines.append(f"""{"ORBITAL":<12} {"ENERGY (eV)":<12} | {"ORBITAL":<12} {"ENERGY (eV)":<12}""")
                     lines.append("-" * 60)
                     
                     beta_left_column = []
@@ -661,16 +673,16 @@ class OrcaParameterStorage:
    
  
     def format_hir_table(self, hir_values, sorted_hir):
-        """ Format Hirschfeld charge values using the generic two-column table. """
+        """ Format Hirshfeld charge values using the generic two-column table. """
         
-        return self.format_two_column_table(hir_values, sorted_hir, "Hirschfeld Spin", "Sorted Spin")
+        return self.format_two_column_table(hir_values, sorted_hir, "HIR VALUE", "SORTED HIR VALUE")
     
   
     
     def format_loew_table(self, loew_values, sorted_loew):
         """ Format Löwdin spin populations using the generic two-column table. """
         
-        return self.format_two_column_table(loew_values, sorted_loew, "Loewdin Spin", "Sorted Spin")
+        return self.format_two_column_table(loew_values, sorted_loew, "LÖWDIN SPIN", "SORTED SPIN")
   
     
   
@@ -687,10 +699,10 @@ class OrcaParameterStorage:
             elif "bond" in param_name:
                 return self.format_dict(value) 
             elif "qa" in param_name:
-                if "qa_sort" in param_name:
-                    return self.format_qa_values(value, is_sorted=True)
+                if "sort_qa" in param_name:
+                    return self.format_qa_charges(value, is_sorted=True)
                 else:
-                    return self.format_qa_values(value, is_sorted=False)
+                    return self.format_qa_charges(value, is_sorted=False)
             elif "loewdin" in param_name:
                 if "loewdin_sort" in param_name:
                     return self.format_loew_table(value, is_sorted=True)
@@ -709,14 +721,14 @@ class OrcaParameterStorage:
     
     
   
-    def format_qa_table(self, qa_values, sorted_qa):
+    def format_qa_table(self, qa_charges, sorted_qa):
         """ Format QA (Mulliken) values using the generic two-column table. """
         
-        return self.format_two_column_table(qa_values, sorted_qa, "QA Value", "Sorted QA")
+        return self.format_two_column_table(qa_charges, sorted_qa, "QA VALUE", "SORTED QA VALUE")
   
    
   
-    def format_qa_values(self, qa_data, is_sorted):
+    def format_qa_charges(self, qa_data, is_sorted):
         """ Format QA (Mulliken) values. """
         
         if not qa_data:
@@ -803,12 +815,12 @@ class OrcaParameterStorage:
         if not left_values or not right_values:
             return f"No {left_label} data available"
             
-        atom_width = 8
-        value_width = 12
+        atom_width = 6
+        value_width = 14
             
         def fmt_line(atom, value):
             atom_str = str(atom)
-            atom_fmt = f"{atom_str}:".ljust(atom_width)
+            atom_fmt = f"{atom_str}".ljust(atom_width)
                 
             if isinstance(value, float):
                 value_fmt = f"{value:>{value_width}.4f}"
@@ -845,8 +857,8 @@ class OrcaParameterStorage:
             
         sep = "     | "
         lines = []
-        lines.append(f"""{"Atom":<{atom_width}}{left_label:>{value_width}}{sep}{"Atom":<{atom_width}}{right_label:>{value_width}}""")
-        lines.append("-" * (2*(atom_width+value_width) + len(sep) + 2))
+        lines.append(f"""{"ATOM":<{atom_width}}{left_label:>{value_width}}{sep}{"ATOM":<{atom_width}}{right_label:>{value_width}}""")
+        lines.append("-" * (2*(atom_width+value_width) + len(sep) + 3))
             
         left_idx = right_idx = 0
         while left_idx < len(left_lines) or right_idx < len(right_lines):
@@ -975,6 +987,7 @@ class OrcaParameterStorage:
             - Frontier orbital gap (α and β if spin-polarized) """
         
         lines = []
+        lines.append("")
         lines.append("===============")
         lines.append("BASIC SUMMARY")
         lines.append("===============")
@@ -1024,15 +1037,15 @@ class OrcaParameterStorage:
                 beta_gap = beta_lumo - beta_homo
                 lines.append(f"FRONTIER GAP:      α: {alpha_gap:.2f} eV  |  β: {beta_gap:.2f} eV\n")
             else:
-                lines.append("FRONTIER GAP:    N/A\n")
+                lines.append("FRONTIER GAP:      N/A\n")
         else:
             homo = frontier.get("homo", {}).get("energy")
             lumo = frontier.get("lumo", {}).get("energy")
             if homo is not None and lumo is not None:
                 gap = lumo - homo
-                lines.append(f"FRONTIER GAP:     {gap:.2f} eV\n")
+                lines.append(f"FRONTIER GAP:      {gap:.2f} eV\n")
             else:
-                lines.append("FRONTIER GAP:     N/A\n")
+                lines.append("FRONTIER GAP:      N/A\n")
     
         lines.append("")                                                                            # Blank line before next section
         return "\n".join(lines)   
@@ -1168,16 +1181,16 @@ class OrcaParameterStorage:
     
         
     
-    def generate_charge_summary(self, charge_type="qa"):
+    def generate_charge_summary(self, charge_type):
         """ Generate a charge summary table organized by classification groups.
         Returns formatted charge summary with count, mean, and standard deviation for each classification group. """
         
         if charge_type == "qa":
-            charge_values = self.parameters.get("qa_values")
+            charge_values = self.parameters.get("qa_charges")
             charge_label = "QA Mulliken Charges"
-        elif charge_type == "hir":
-            charge_values = self.parameters.get("hir_values")
-            charge_label = "Hirshfeld Charges"        
+        #elif charge_type == "hir":
+        #    charge_values = self.parameters.get("hir_charges")
+        #    charge_label = "Hirshfeld Charges"        
         else:
             return f"Unknown charge type: {charge_type}"
         
@@ -1375,28 +1388,28 @@ class OrcaParameterStorage:
             
         
         output = []
-        output.append("=" * 88)
-        output.append("HIGHEST ORDER							              LOWEST ORDER")
-        output.append("=" * 88)
+        output.append("=" * 63)
+        output.append("HIGHEST ORDER                     LOWEST ORDER")
+        output.append("=" * 63)
         output.append("")
             
-        output.append(f"""{"BOND":<10} {"ORDER":<8} {"TYPE":<30}    {"BOND":<10} {"ORDER":<8} {"TYPE":<20}""")
-        output.append("-" * 85)
+        output.append(f"""{"BOND":<10} {"ORDER":<8} {"TYPE":<10}    {"BOND":<10} {"ORDER":<8} {"TYPE":<20}""")
+        output.append("-" * 63)
             
         max_rows = max(len(highest), len(lowest))
             
         for i in range(max_rows):
             if i < len(highest):
                 bond, order, length, bond_type = highest[i]
-                left = f"{bond:<9} {order:>6.3f}    {bond_type:<29}"
+                left = f"{bond:<9} {order:>6.3f}    {bond_type:<9}"
             else:
-                left = " " * 42
+                left = " " * 32
                 
             if i < len(lowest):
                 bond, order, length, bond_type = lowest[i]
-                right = f"{bond:<9} {order:>6.3f}    {bond_type:<10}"
+                right = f"{bond:<9} {order:>6.3f}    {bond_type:<9}"
             else:
-                right = " " * 42
+                right = " " * 32
                 
             output.append(f"{left}     {right}")
             
@@ -1404,23 +1417,27 @@ class OrcaParameterStorage:
     
 
 
-    def generate_extreme_charges_table(self, charge_type):
-        """ Generate a table showing the most cationic and most anionic atoms for the molecule. """
+    def generate_extreme_charges_table(self, charge_type="qa"):
+        """ Generate a table showing the most positive (cations) and most negative (anions) charges.
+        Returns formatted table with top 10 most positive and most negative charges. """
         
         if charge_type == "qa":
-            charge_values = self.parameters.get("qa_values")
+            charge_values = self.parameters.get("qa_charges")
             charge_label = "QA"
-        elif charge_type == "hir":
-            charge_values = self.parameters.get("hir_values")
-            charge_label = "Hirshfeld"
+            gap = 16
+        #elif charge_type == "hir":
+        #    charge_values = self.parameters.get("hir_charges")
+        #    charge_label = "Hirshfeld"
+        #    gap = 14
         else:
             return f"Unknown charge type: {charge_type}"
-
+        
         atom_class = self.parameters.get("atom_class")
         
         if not atom_class or not charge_values:
             return f"No {charge_label} charge data available"
         
+        # Build list of (atom, charge, classification)
         atom_data = []
         for atom, charge in charge_values.items():
             if atom in atom_class:
@@ -1431,68 +1448,75 @@ class OrcaParameterStorage:
         if not atom_data:
             return f"No valid {charge_label} charge data available"
         
-        sorted_by_charge = sorted(atom_data, key=lambda x: x[1], reverse=True)              # Sort by charge (most positive first)
+        # Sort by charge (most positive to most negative)
+        sorted_by_charge = sorted(atom_data, key=lambda x: x[1], reverse=True)
         
-        cations = sorted_by_charge[:10]                                                     # Get top 10 most positive (cations)
+        # Get top 10 positive (cations) and top 10 negative (anions)
+        cations = sorted_by_charge[:10]
+        anions = sorted_by_charge[-10:][::-1]  # Reverse to show most negative first
         
-        anions = sorted_by_charge[-10:][::-1]                                               # Get top 10 most negative (anions)
-        
-
+        # Build output
         output = []
-        output.append("=" * 88)
-        output.append("TOP 10 CATIONS (MOST POSITIVE)            		      TOP 10 ANIONS (MOST NEGATIVE)")
-        output.append("=" * 88)
+        
+        # Header with proper spacing - adjust width as needed
+        total_width = 100
+    
+        # Center the header
+        header_text_left = f"TOP 10 CATIONS (MOST POSITIVE {charge_label})"
+        header_text_right = f"TOP 10 ANIONS (MOST NEGATIVE {charge_label})"
+        
+        # Build the header line without leading spaces
+        header_line = f"{header_text_left}{' ' * gap}{header_text_right}"
+        
+        # Top border
+        output.append("=" * total_width)
+        output.append(header_line)
+        output.append("=" * total_width)
         output.append("")
         
-        if charge_type == "qa":
-            output.append(f"""{"RANK":<6} {"ATOM":<7} {"QA":<6} {"CLASS":<27}     {"RANK":<6} {"ATOM":<7} {"QA":<6} {"CLASS":<27}""")
-            output.append("-" * 101)
-        if charge_type == "hir":
-            output.append(f"""{"RANK":<6} {"ATOM":<7} {"HIR":<6} {"CLASS":<27}     {"RANK":<6} {"ATOM":<7} {"HIR":<6} {"CLASS":<27}""")
-            output.append("-" * 101)
+        # Column headers
+        rank_width = 5
+        atom_width = 6
+        charge_width = 6
+        class_width = 25
         
+        # Left column: RANK, ATOM, CHARGE, CLASS
+        # Right column: RANK, ATOM, CHARGE, CLASS
+        left_header = f"{'RANK':<{rank_width}} {'ATOM':<{atom_width}} {'CHARGE':>{charge_width}}    {'CLASS':<{class_width}}"
+        right_header = f"{'RANK':<{rank_width}} {'ATOM':<{atom_width}} {'CHARGE':>{charge_width}}    {'CLASS':<{class_width}}"
+        
+        # Calculate total width of each half
+        half_width = rank_width + atom_width + charge_width + class_width + 4
+        output.append(f"{left_header:<{half_width}} {right_header:<{half_width}}")
+        output.append("-" * total_width)
+        
+        # Fill rows
         max_rows = max(len(cations), len(anions))
-        
         for i in range(max_rows):
             if i < len(cations):
                 atom, charge, cls = cations[i]
-                cls_display = cls
-                for group_name, group_info in class_groups.items():
-                    if cls in group_info["classifications"]:
-                        cls_display = self.format_subclass_name(cls, group_name)
-                        break
-                
-                if len(cls_display) > 28:
-                    cls_display = cls_display[:25] + "..."
-                
-                charge_str = f"{charge:>7.3f}"
-                left = f"{i+1:<6} {atom:<5} {charge_str}  {cls_display:<27}"
+                # Format the class name
+                cls_display = cls[:class_width-3] + "..." if len(cls) > class_width else cls
+                left_row = f"{i+1:<{rank_width}} {atom:<{atom_width}} {charge:>{charge_width}.3f}    {cls_display:<{class_width}}"
             else:
-                left = " " * 54
+                left_row = " " * (rank_width + atom_width + charge_width + class_width + 3)
             
             if i < len(anions):
                 atom, charge, cls = anions[i]
-                cls_display = cls
-                for group_name, group_info in class_groups.items():
-                    if cls in group_info["classifications"]:
-                        cls_display = self.format_subclass_name(cls, group_name)
-                        break
-                
-                if len(cls_display) > 28:
-                    cls_display = cls_display[:25] + "..."
-                    
-                if charge is not None:
-                    charge_str = f"{charge:>7.3f}"
-                right = f"{i+1:<6} {atom:<5} {charge_str}  {cls_display:<30}"
+                # Format the class name
+                cls_display = cls[:class_width-3] + "..." if len(cls) > class_width else cls
+                right_row = f"{i+1:<{rank_width}} {atom:<{atom_width}} {charge:>{charge_width}.3f}    {cls_display:<{class_width}}"
             else:
-                right = " " * 54
+                right_row = " " * (rank_width + atom_width + charge_width + class_width + 3)
             
-            output.append(f"{left}     {right}")
+            output.append(f"{left_row:<{half_width}} {right_row}")
         
-        return "\n".join(output) 
-    
-    
-    
+        output.append("=" * total_width)
+        
+        return "\n".join(output)
+
+
+
     def generate_extreme_spins_table(self, spin_type="loewdin"):
         """ Generate a table showing the largest positive spins and corresponding orbital details. """
         
@@ -1503,11 +1527,11 @@ class OrcaParameterStorage:
             return f"Unknown spin type: {spin_type}"
         
         atom_class = self.parameters.get("atom_class")
-        orbital_data = self.parameters.get("loew_orbital_spin")
+        orbital_data = self.parameters.get("loew_orb_spin")
         
         if not atom_class or not spin_values:
             return f"No {spin_label} spin data available"
-        
+            
         atom_data = []
         for atom, spin in spin_values.items():
             if atom in atom_class:
@@ -1517,73 +1541,69 @@ class OrcaParameterStorage:
         
         if not atom_data:
             return f"No valid {spin_label} spin data available"
-        
-        
-        sorted_by_spin = sorted(atom_data, key=lambda x: x[1], reverse=True)            # Sort by spin (most positive first).
-        
-        positive = sorted_by_spin[:10]                                                  # Get top 10 most positive spins.
-        
-        top_atom_orbital_lines = []                                                     # Find the top atom (highest spin) and get its orbital details.
+            
+        sorted_by_spin = sorted(atom_data, key=lambda x: x[1], reverse=True)
+        positive = sorted_by_spin[:10]
+            
+        top_atom_orbital_lines = []
         if orbital_data and positive:
             top_atom = positive[0][0]
             if top_atom in orbital_data:
                 data = orbital_data[top_atom]
-                total_spin = data["total_orbital_spin"]
-                orbitals = data["orbitals"]
-                
-                atom_name = top_atom                                                    # Format the orbital details.
-                first_line = f"{atom_name}: Total Spin = {total_spin:.5f}"
-                top_atom_orbital_lines.append(first_line)
-                top_atom_orbital_lines.append("")
-                
-                colon_position = len(atom_name) + 2
-
-                sorted_orbitals = sorted(orbitals.items(), key=lambda x: abs(x[1]), reverse=True)
-                for orbital, spin in sorted_orbitals:
-                    orbital_str = orbital
-                    spaces_needed = colon_position - len(orbital_str)
-                    if spaces_needed > 0:
-                        orbital_padded = " " * spaces_needed + orbital_str
-                    else:
-                        orbital_padded = orbital_str
+                try:
+                    total_spin = data["total_orbital_spin"]
+                    orbitals = data["orbitals"]
+                        
+                    atom_name = top_atom
+                    first_line = f"{atom_name}: Total Spin = {total_spin:.5f}"
+                    top_atom_orbital_lines.append(first_line)
+                    top_atom_orbital_lines.append("")
                     
-                    top_atom_orbital_lines.append(f"{orbital_padded} : {spin:>10.5f}")
-        
+                    colon_position = len(atom_name) + 2  
+                    sorted_orbitals = sorted(orbitals.items(), key=lambda x: abs(x[1]), reverse=True)
+
+                    for orbital, spin in sorted_orbitals:
+                        orbital_str = orbital
+                        spaces_needed = colon_position - len(orbital_str)
+                        if spaces_needed > 0:
+                            orbital_padded = " " * spaces_needed + orbital_str
+                        else:
+                            orbital_padded = orbital_str
+                            
+                        top_atom_orbital_lines.append(f"{orbital_padded} : {spin:>10.5f}")
+                except (KeyError, TypeError):
+                    pass
+    
+        # Original output building (unchanged)
         output = []
         output.append("=" * 85)
         output.append(f"""{"TOP 10 MOST POSITIVE SPINS":<35} {"TOP ATOM LÖWDIN ORBITAL SPIN DETAILS":>45}""")
         output.append("=" * 85)
         output.append("")
-        
+            
         output.append(f"""{"RANK":<6} {"ATOM":<6} {"SPIN":<6} {"CLASS":<20}    {"ORBITAL DETAILS"}""")
         output.append("-" * 85)
-        
+            
         max_rows = max(len(positive), len(top_atom_orbital_lines))
-        
         for i in range(max_rows):
             if i < len(positive):
                 atom, spin, cls = positive[i]
                 cls_display = cls
-                for group_name, group_info in class_groups.items():
-                    if cls in group_info["classifications"]:
-                        cls_display = self.format_subclass_name(cls, group_name)
-                        break
-                
                 if len(cls_display) > 20:
                     cls_display = cls_display[:17] + "..."
-                
+                    
                 spin_str = f"{spin:>5.3f}"
                 left = (f"{i+1:<6} {atom:<6} {spin_str}  {cls_display:<20}")
             else:
                 left = " " * 39
-            
+        
             if i < len(top_atom_orbital_lines):
                 right = top_atom_orbital_lines[i]
             else:
                 right = ""
-            
+                
             output.append(f"{left:<39}    {right}")
-        
+    
         return "\n".join(output)
    
 
@@ -1742,60 +1762,61 @@ class OrcaParameterStorage:
             - Electronic properties (QA, Hirshfeld, frontier orbitals)
             - Energy data (electronic, thermal, vibrational)
             - Classification properties for each group """
+            
+        comp_filename = f"{filename}-Complete.txt"
         
         try:
-            with open(filename, "w") as f:
-                f.write("ORCA Output Parameters\n")
-                f.write("=" * 50 + "\n\n")
-                
+            with open(comp_filename, "w") as f:
 
-                f.write("BASIC STRUCTURE DATA\n")
-                f.write("=" * 50 + "\n\n\n")
+                f.write("\n" + "=" * 50)
+                f.write("\nBASIC STRUCTURE DATA\n")
+                f.write("=" * 50 + "\n")
                 
                 if "atom_class" in self.parameters:
                     f.write(self.format_atom_class(self.parameters["atom_class"]))
-                    f.write("\n\n")
+                    f.write("\n\n\n\n")
                 
                 if "coords" in self.parameters:
-                    f.write("Coordinates:\n")
-                    f.write("-" * 40 + "\n\n")
+                    f.write("COORDINATES:\n")
+                    f.write("-" * 40 + "\n")
                     f.write(f"""{self.format_parameter("coords", self.parameters["coords"])}\n\n""")
                     f.write("\n\n")
                         
                 if "bond_lengths" in self.parameters and "bond_orders" in self.parameters:
-                    f.write("Bond Lengths and Orders:\n")
+                    f.write("BOND LENGTHS AND ORDERS:\n")
                     f.write("-" * 45 + "\n")
                     bond_table = self.format_bond_table(self.parameters["bond_lengths"], self.parameters["bond_orders"])
                     f.write(f"{bond_table}\n\n")
                     f.write("\n\n") 
+                 
                     
-                
+                f.write("\n" + "=" * 50)
                 f.write("\nELECTRONIC PROPERTIES\n")
-                f.write("=" * 50 + "\n\n\n")
+                f.write("=" * 50 + "\n\n")
                 
-                if "qa_values" in self.parameters:
-                    f.write("QA Values:\n")
-                    f.write("-" * 40 + "\n\n")
+                if "qa_charges" in self.parameters:
+                    f.write("\nQA CHARGES:\n")
+                    f.write("-" * 50 + "\n")
                     if "sort_qa" in self.parameters:
-                        qa_table = self.format_qa_table(self.parameters["qa_values"], self.parameters["sort_qa"])
+                        qa_table = self.format_qa_table(self.parameters["qa_charges"], self.parameters["sort_qa"])
                     else:
-                        qa_table = self.format_parameter("qa_values", self.parameters["qa_values"])
+                        qa_table = self.format_parameter("qa_charges", self.parameters["qa_charges"])
                     f.write(f"{qa_table}\n\n")
                     f.write("\n\n")
                     
-                if "hir_values" in self.parameters and "sort_hir" in self.parameters:
-                    f.write("Hirshfeld Values:\n")
-                    f.write("-" * 40 + "\n\n")
+                if "hir_charges" in self.parameters and "sort_hir" in self.parameters:
+                    f.write("HIRSHFELD CHARGES:\n")
+                    f.write("-" * 50 + "\n")
                     if "sort_hir" in self.parameters:
-                        hir_table = self.format_hir_table(self.parameters["hir_values"], self.parameters["sort_hir"])
+                        hir_table = self.format_hir_table(self.parameters["hir_charges"], self.parameters["sort_hir"])
                     else:
-                        hir_table = self.format_parameter("hir_values", self.parameters["hir_values"])
+                        hir_table = self.format_parameter("hir_charges", self.parameters["hir_charges"])
                     f.write(f"{hir_table}\n\n")
                     f.write("\n\n")  
                     
                 if "loew_spin_pop" in self.parameters and "sort_loew_spin_pop" in self.parameters:
-                    f.write("Löwdin Spin Populations:\n")
-                    f.write("-" * 40 + "\n\n")
+                    f.write("LÖWDIN SPIN POPULATIONS:\n")
+                    f.write("-" * 40 + "\n")
                     loewdin_table = self.format_loew_table(self.parameters["loew_spin_pop"], self.parameters["sort_loew_spin_pop"])
                     f.write(f"{loewdin_table}\n\n")
                     f.write("\n\n")    
@@ -1806,20 +1827,21 @@ class OrcaParameterStorage:
                     f.write("\n\n") 
                     
                 if "energy_data" in self.parameters:
-                    f.write("Energy Data:\n")
+                    f.write("ENERGY DATA:\n")
                     f.write("-" * 40 + "\n\n")  
                     energy_table = self.format_elec_energy_data(self.parameters["energy_data"])
                     f.write(f"{energy_table}\n\n")
                     f.write("\n\n")
                     
                 if "vib_freq" in self.parameters:
-                    f.write("Vibrational Frequencies:\n")
+                    f.write("VIBRATIONAL FREQUENCIES:\n")
                     f.write("-" * 40 + "\n\n")
                     vib_display = self.format_vib_freq(self.parameters["vib_freq"])
                     f.write(f"{vib_display}\n\n")
                     f.write("\n\n")
                     
 
+                f.write("\n" + "=" * 50)
                 f.write("\nCLASSIFICATION PROPERTIES\n")
                 f.write("=" * 50 + "\n\n")
         
@@ -1830,16 +1852,16 @@ class OrcaParameterStorage:
                         print(f"""Warning: No parameter prefix found for "{group_name}" """)
                         continue
                 
-                    qa_values_param = f"{prefix}_qa_values"
+                    qa_charges_param = f"{prefix}_qa_charges"
                     qa_sort_param = f"{prefix}_qa_sort"
-                    hir_values_param = f"{prefix}_hir_values"
+                    hir_values_param = f"{prefix}_hir_charges"
                     hir_sort_param = f"{prefix}_hir_sort"
                     loew_values_param = f"{prefix}_loew_values"
                     loew_sort_param = f"{prefix}_loew_sort"
                     bond_lengths_param = f"{prefix}_bond_lengths"
                     bond_orders_param = f"{prefix}_bond_orders"
                     
-                    has_qa = qa_values_param in self.parameters
+                    has_qa = qa_charges_param in self.parameters
                     has_hir = hir_values_param in self.parameters
                     has_loew = loew_values_param in self.parameters
                     has_bonds = bond_lengths_param in self.parameters
@@ -1852,35 +1874,35 @@ class OrcaParameterStorage:
                     
                     if has_qa:
                         if qa_sort_param in self.parameters:
-                            qa_table = self.format_qa_table(self.parameters[qa_values_param], self.parameters[qa_sort_param])
+                            qa_table = self.format_qa_table(self.parameters[qa_charges_param], self.parameters[qa_sort_param])
                         else:
-                            qa_table = self.format_qa_values(self.parameters[qa_values_param], is_sorted=False)
+                            qa_table = self.format_qa_charges(self.parameters[qa_charges_param], is_sorted=False)
                         f.write(f"{qa_table}\n\n")
                         
-                        values = list(self.parameters[qa_values_param].values())
+                        values = list(self.parameters[qa_charges_param].values())
                         if values and all(isinstance(v, (int, float)) for v in values):
                             f.write(f"QA Mean: {np.mean(values):.3f}\n")
                             f.write(f"QA Stdev: {np.std(values):.3f}\n")
-                        f.write("\n")
+                        f.write("\n\n")
                     
                     if has_hir:
                         if hir_sort_param in self.parameters:
                             hir_table = self.format_hir_table(self.parameters[hir_values_param], self.parameters[hir_sort_param])
                         else:
-                            hir_table = self.format_qa_values(self.parameters[hir_values_param], is_sorted=False)
+                            hir_table = self.format_qa_charges(self.parameters[hir_values_param], is_sorted=False)
                         f.write(f"{hir_table}\n\n")
                         
                         values = list(self.parameters[hir_values_param].values())
                         if values and all(isinstance(v, (int, float)) for v in values):
                             f.write(f"Hir Mean: {np.mean(values):.3f}\n")
                             f.write(f"Hir Stdev: {np.std(values):.3f}\n")
-                        f.write("\n")
+                        f.write("\n\n")
                     
                     if has_loew:
                         if loew_sort_param in self.parameters:
                             loew_table = self.format_loew_table(self.parameters[loew_values_param], self.parameters[loew_sort_param])
                         else:
-                            loew_table = self.format_qa_values(self.parameters[loew_values_param], is_sorted=False)
+                            loew_table = self.format_qa_charges(self.parameters[loew_values_param], is_sorted=False)
                         f.write(f"{loew_table}\n\n")
                             
                         values = list(self.parameters[loew_values_param].values())
@@ -1894,9 +1916,9 @@ class OrcaParameterStorage:
                         if bond_table and "No bond data" not in bond_table:
                             f.write(f"{bond_table}\n\n")
                     
-                    f.write("\n\n")
+                    f.write("\n")
                             
-            print(f"Parameters saved to {filename}")
+            print(f"Parameters saved to {comp_filename}")
             return True
                             
         except Exception as e:
@@ -1925,19 +1947,19 @@ class OrcaParameterStorage:
         try:
             with open(trim_filename, "w") as f:
                 f.write(self.generate_basic_summary())
-                f.write("\n")
                 f.write(self.format_atom_class(self.parameters["atom_class"]))
                 f.write("\n\n\n\n\n")
                 
-                f.write(self.generate_charge_summary("qa"))
-                f.write("\n\n\n")
-                f.write(self.generate_extreme_charges_table("qa"))
-                f.write("\n\n\n\n\n")
-                
-                if "hir_values" in self.parameters and self.parameters["hir_values"]:
-                    f.write(self.generate_charge_summary("hir"))
+                #if "hir_charges" in self.parameters and self.parameters["hir_charges"]:
+                #    f.write(self.generate_charge_summary("hir"))
+                #    f.write("\n\n\n")
+                #    f.write(self.generate_extreme_charges_table("hir"))
+                #    f.write("\n\n\n\n\n")
+                    
+                if "qa_charges" in self.parameters and self.parameters["qa_charges"]:
+                    f.write(self.generate_charge_summary("qa"))
                     f.write("\n\n\n")
-                    f.write(self.generate_extreme_charges_table("hir"))
+                    f.write(self.generate_extreme_charges_table("qa"))
                     f.write("\n\n\n\n\n")
                     
                 if "loew_spin_pop" in self.parameters and self.parameters["loew_spin_pop"]:

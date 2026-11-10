@@ -1,6 +1,14 @@
 
 # -*- coding: utf-8 -*-
 """
+ORCA Data Parser - Main Script
+===============================
+
+This module provides the main interface for parsing and analyzing ORCA output files.
+It handles both standard calculations and TD-DFT calculations with Multiwfn integration.
+
+Example filenames: Fe3+_Mo_Keggin_H-t-butyl-Peroxo.out, Mo_H-t.txt
+
 @author: dmalcolm
 """
 
@@ -21,8 +29,7 @@ from TDDFT_Transmittance import generate_spectrum
 
 parameter_storage = OrcaParameterStorage()
     
-#Fe3+_Mo_Keggin_H-t-butyl-Peroxo.out
-#Mo_H-t.txt
+#W_Keggin_-O_23741984.out
 
 
 
@@ -31,6 +38,7 @@ def calc_analysis(filename):
     """ Extract all data from ORCA output file. Returns dict of results. """    
     
     results = {}
+    sp_token = False
     
     parameter_storage.store_parameter("filename", filename)                                                             # Entire filename is made available to OrcaParameterStorage() class.
     
@@ -63,18 +71,17 @@ def calc_analysis(filename):
     
     results["sort_qa"] = EP.sort_dict_ntop(results["qa_charges"])                                                       # Sorts QA Charges based on charge (-ve to +ve).
     parameter_storage.store_parameter("sort_qa", results["sort_qa"])
-    parameter_storage.store_parameter("sorted_qa_all", results["sort_qa"])
-    
+
     results["hir_charges"] = EP.extract_hir_charges(filename, list(results["x_coords"].keys()))                         # Retrieves Hirshfeld Charges directly from output file.
     parameter_storage.store_parameter("hir_charges", results["hir_charges"])
     
     results["sort_hir"] = EP.sort_dict_ntop(results["hir_charges"])                                                     # Sorts Hirshfeld Charges (-ve to +ve).
     parameter_storage.store_parameter("sort_hir", results["sort_hir"])
     
-    results["hir_spin_pop"] = EP.extract_hir_pop(filename, list(results["x_coords"].keys()))                            # Retrieves Hirschfeld Spin values directly from output file.
+    results["hir_spin_pop"] = EP.extract_hir_pop(filename, list(results["x_coords"].keys()))                            # Retrieves Hirshfeld Spin values directly from output file.
     parameter_storage.store_parameter("hir_spin_pop", results["hir_spin_pop"])
     
-    results["sort_hir_spin_pop"] = EP.sort_dict_pton(results["hir_spin_pop"])                                           # Sorts Hirschfeld Spin values (+ve to -ve).
+    results["sort_hir_spin_pop"] = EP.sort_dict_pton(results["hir_spin_pop"])                                           # Sorts Hirshfeld Spin values (+ve to -ve).
     parameter_storage.store_parameter("sort_hir_spin_pop", results["sort_hir_spin_pop"])
     
     results["loew_spin_pop"] = EP.extract_loew_pop(filename, list(results["x_coords"].keys()))                          # Retrieves Löwdin Spin values directly from output file.
@@ -83,12 +90,12 @@ def calc_analysis(filename):
     results["sort_loew_spin_pop"] = EP.sort_dict_pton(results["loew_spin_pop"])                                         # Sorts Löwdin Spin values (+ve to -ve).
     parameter_storage.store_parameter("sort_loew_spin_pop", results["sort_loew_spin_pop"])
     
-    results["loew_orbital_spin"] = EP.extract_orb_spin_contribution(filename, list(results["x_coords"].keys()))         # Retrieves Reduced Orbital Spin Populations directly from output file. Collects values from valence orbitals only (p for C, d for Fe...). 
-    parameter_storage.store_parameter("loew_orbital_spin", results["loew_orbital_spin"])
+    results["loew_orb_spin"] = EP.extract_orb_spin_contribution(filename, list(results["x_coords"].keys()))             # Retrieves Reduced Orbital Spin Populations directly from output file. Collects values from valence orbitals only (p for C, d for Fe...). 
+    parameter_storage.store_parameter("loew_orb_spin", results["loew_orb_spin"])
     
-    orbital_spin_values = {atom: data["total_orbital_spin"] for atom, data in results["loew_orbital_spin"].items()} 
-    results["sort_loew_orbital_spin"] = EP.sort_dict_pton(orbital_spin_values)                                          # Sorts Total Reduced Orbital Spin Population values (+ve to -ve).
-    parameter_storage.store_parameter("sort_loew_orbital_spin", results["sort_loew_orbital_spin"])
+    orbital_spin_values = {atom: data["total_orbital_spin"] for atom, data in results["loew_orb_spin"].items()} 
+    results["sort_loew_orb_spin"] = EP.sort_dict_pton(orbital_spin_values)                                              # Sorts Total Reduced Orbital Spin Population values (+ve to -ve).
+    parameter_storage.store_parameter("sort_loew_orb_spin", results["sort_loew_orb_spin"])
     
     results["frontier"] = EP.extract_homo_lumo_join(filename)                                                           # Retrieves HOMO and LUMO orbital energies and designations. Accounts for spin polarisation.
     parameter_storage.store_parameter("frontier", results["frontier"])
@@ -114,7 +121,6 @@ def calc_analysis(filename):
     if results["energy_data"]["calculation_type"] in ["Frequency", "Numerical Frequency"]:
         results["vib_freq"] = EP.extract_vib_freq(filename, results["energy_data"]["calculation_type"])                 # If Frequency calculation, retrieves Vibrational Frequencies. Reports any Imaginary Frequencies.
         parameter_storage.store_parameter("vib_freq", results["vib_freq"])
-
     return results
 
 
@@ -187,7 +193,7 @@ def multiwfn_nto_parsing():
         print("📊 Step 3: Generate UV-Vis Spectra for each TD-DFT File...")
         print(f"{'='*75}\n")
         
-        generate_spectrum(f"{filename}.out")                                                                        # Generate UV-Vis spectrum.
+        generate_spectrum(f"{filename}.out", show_transmittance=False, sigma_value=25)                                                                        # Generate UV-Vis spectrum.
             
         pattern = f"{filename}_absorbance_sigma*.png"                                                               # Find and move the matching .png spectra file.
         matching_files = glob(pattern)
@@ -264,10 +270,10 @@ def main():
             return
     
     calc_analysis(filename)
-    
+
         
     # ============ ASK FOR USER INPUT ============
-    
+        
     while True:
         selection = input("\nEnter:\n - parameter name (see ReadMe or enter 'list')\n - 'save' to export data \n - 'quit'\n ").strip()
         
@@ -278,12 +284,12 @@ def main():
             for param in sorted(parameter_storage.parameters.keys()):
                 print(f"  {param}")
         elif selection.lower() == "save":
-            filename = input("Enter output filename (default: orca_parameters.txt): ").strip()
+            filename = input("Enter output filename (default: orca_parameters): ").strip()
             if not filename:
-                filename = "orca_parameters.txt"
+                filename = "orca_parameters"
+            filename = os.path.splitext(filename)[0]
             parameter_storage.save_to_raw_file(filename)                                        # Generates summary txt file containing all raw data, sorted and grouped accordingly.
-            trim_name = os.path.splitext(filename)[0]
-            parameter_storage.save_to_trimmed_file(trim_name)                                   # Generates more concise txt file containing more key and relevant results.
+            parameter_storage.save_to_trimmed_file(filename)                                   # Generates more concise txt file containing more key and relevant results.
 
         else:
             value = parameter_storage.get_parameter(selection)                                  # Allows for viewing specific parameters directly in the console window.
@@ -294,6 +300,7 @@ def main():
                 print(formatted_value)
             else:
                 print(f"\nParameter '{selection}' not found.")
+                
 
 if __name__ == "__main__":
     main()

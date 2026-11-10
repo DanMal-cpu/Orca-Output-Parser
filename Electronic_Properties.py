@@ -125,7 +125,7 @@ def extract_qa_charges(orca_output_file, atom_labels):
     """ Extract Mulliken gross atomic charges (QA) from ORCA output.
     Returns dict {atom: charge}. """
     
-    qa_values = {}
+    qa_charges = {}
     
     with open(orca_output_file, "r") as f:                                          # Early exit for frequency-only calculations.
         content = f.read()
@@ -133,14 +133,14 @@ def extract_qa_charges(orca_output_file, atom_labels):
             return {}
     
     if not atom_labels:
-        return qa_values
+        return qa_charges
     
     with open(orca_output_file, "r") as f:
         lines = f.readlines()
     
     last_section_pos = find_last_section(lines, "MAYER POPULATION ANALYSIS")        # Find the last MAYER POPULATION ANALYSIS section.
     if last_section_pos == -1:
-        return qa_values
+        return qa_charges
     
     atom_counter = 0
     capture_data = False
@@ -165,14 +165,14 @@ def extract_qa_charges(orca_output_file, atom_labels):
                 try:
                     qa = float(parts[4])                                            # QA is column index 4 (0-based: ATOM, NA, ..., QA).
                     if atom_counter < len(atom_labels):
-                        qa_values[atom_labels[atom_counter]] = qa
+                        qa_charges[atom_labels[atom_counter]] = qa
                         atom_counter += 1
                     else:
                         break
                 except (ValueError, IndexError) as e:
                     continue
     
-    return qa_values
+    return qa_charges
 
 
 
@@ -548,15 +548,13 @@ def extract_orbitals_around_gap(file_path):
     except Exception as e:
         return results
 
-    first_table_start = content.find("ORBITAL ENERGIES")                                # Find the SECOND occurrence of the table.
-    if first_table_start == -1:
+    marker = "ORBITAL ENERGIES"
+    table_start = content.rfind(marker)          # last occurrence — works for both 1-table and 2-table outputs
+    if table_start == -1:
+
         return results
     
-    second_table_start = content.find("ORBITAL ENERGIES", first_table_start + 1)
-    if second_table_start == -1:
-        return results
-    
-    table_content = content[second_table_start:]
+    table_content = content[table_start:]
     found_header = False
     orbitals = []
     

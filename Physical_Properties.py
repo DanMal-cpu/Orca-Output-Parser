@@ -124,7 +124,7 @@ def extract_and_label_coordinates(filename):
     header_indices = [i for i, line in enumerate(lines) if "CARTESIAN" in line.upper() and "ANGSTROEM" in line.upper()]                # Find last CARTESIAN COORDINATES header.
     
     if not header_indices:
-        return None
+        return []
     
     last_header = header_indices[-1]
     
